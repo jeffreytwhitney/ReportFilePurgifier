@@ -1,5 +1,4 @@
 import os
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -31,7 +30,7 @@ class CMMRunDataPurgifier:
         self._logger = PurgifierLogger.get_logger("cmm_run_data_purgifier_logger")
         self._logger.debug("Starting CMM Run Data Purge")
 
-        self._root_path = get_stored_ini_value("CMMRunDataPurgifier", "root_path", "Purgifier")
+        self._root_path = get_stored_ini_value("CMMRunDataPurgifier", "root_path", "PurgifierSettings")
         if not self._root_path:
             self._logger.error("Root Path not found in INI file.")
             return
@@ -41,13 +40,13 @@ class CMMRunDataPurgifier:
             return
 
         try:
-            self._prg_file_days_to_keep = int(get_stored_ini_value("cmm_prg_days_to_keep", "path", "Purgifier"))
+            self._prg_file_days_to_keep = int(get_stored_ini_value("CMMRunDataPurgifier", "path", "PurgifierSettings"))
         except ValueError:
             self._logger.error("cmm_prg_days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
 
         try:
-            self._cad_file_days_to_keep = int(get_stored_ini_value("cmm_cad_days_to_keep", "path", "Purgifier"))
+            self._cad_file_days_to_keep = int(get_stored_ini_value("cmm_cad_days_to_keep", "path", "PurgifierSettings"))
         except ValueError:
             self._logger.error("cmm_cad_days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
@@ -64,11 +63,6 @@ class CMMRunDataPurgifier:
         deleted_prg = 0
         deleted_cad = 0
         errors = 0
-
-        def onerror(err):
-            nonlocal errors
-            errors += 1
-            print(f"WARNING: Failed to access directory: {err}", file=sys.stderr)
 
         with os.scandir(self._root_path) as entries:
             for entry in entries:

@@ -6,7 +6,7 @@ from Utilities import resolve_path, get_stored_ini_value
 
 def get_logger(logger_name) -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    logger_level = get_stored_ini_value("Loggers", logger_name, "Purgifier")
+    logger_level = get_stored_ini_value("Loggers", logger_name, "PurgifierSettings")
     if logger_level == "DEBUG":
         logger.setLevel(logging.DEBUG)
     else:
