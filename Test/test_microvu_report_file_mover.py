@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import MicroVuReportFileMover
-from MicroVuReportFileMover import _get_minus_days_beginning_of_month
+from MicroVuReportFileMover import _get_minus_days_beginning_of_day
 
 
 def _set_mtime(path: str, dt: datetime):
@@ -31,7 +31,7 @@ def _make_instance(root_path: str, days_to_keep: int, monkeypatch):
     inst = MicroVuReportFileMover.MicroVuReportFileMover()
     # Ensure cutoff is available if the code under test doesn't set it yet
     if getattr(inst, "_pdf_file_cutoff", None) is None:
-        inst._pdf_file_cutoff = _get_minus_days_beginning_of_month(days_to_keep)
+        inst._pdf_file_cutoff = _get_minus_days_beginning_of_day(days_to_keep)
     return inst
 
 

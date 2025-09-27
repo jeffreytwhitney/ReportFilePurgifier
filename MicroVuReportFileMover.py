@@ -1,3 +1,43 @@
+"""
+MicroVu Report File Mover
+
+Overview:
+    Moves aging MicroVu report files from a configured root directory into
+    year-based subfolders, helping organize older reports. The intended policy is:
+      - For files older than a configured cutoff, move them into a sibling folder
+        named "_<YYYY>" based on each file's last-modified year.
+
+Configuration:
+    Values are loaded via `Utilities.get_stored_ini_value(section, key, ini_name)`.
+
+    Expected INI entries:
+      - Section: "MicroVUFileMover"
+          - Key: "root_path" (string)
+              Root directory that contains report files to organize.
+          - Key: "mv_days_to_keep" (int)
+              Number of days used to compute the age cutoff for moving files.
+      - Ini name: "PurgifierSettings"
+
+Usage:
+    Instantiate and run:
+        >>> mover = MicroVuReportFileMover()
+        >>> mover.move_microvu_files()
+
+Behavior:
+    - Scans the configured `root_path` non-recursively.
+    - For each file older than the cutoff, creates a year subdirectory (if needed)
+      in the same directory with the pattern "_YYYY" and moves the file into it.
+    - Logs progress, actions, and any errors encountered.
+
+Logging:
+    Uses `PurgifierLogger.get_logger("micro_vu_file_mover_logger")`.
+    - DEBUG: start/end, root path, directory creation, and each move.
+    - WARNING: recoverable issues (e.g., failure to move a file).
+    - ERROR: non-recoverable issues (e.g., unreadable file stats).
+
+Notes and caveats:
+    - Traversal is non-recursive; only files directly in `root_path` are processed.
+"""
 import os
 import shutil
 from datetime import datetime, timedelta
@@ -6,20 +46,59 @@ import PurgifierLogger
 from Utilities import get_stored_ini_value
 
 
-def _get_minus_days_beginning_of_month(days: int) -> datetime:
+def _get_minus_days_beginning_of_day(days: int) -> datetime:
+    """
+    Compute midnight of today-days.
+
+    Example:
+        If today is 2025-09-27 and days=10 (reference = 2025-09-17),
+        the result is 2025-09-17 00:00:00.
+
+    Args:
+        days: Number of days to subtract from today to determine the reference date.
+
+    Returns:
+        datetime at 00:00:00 on the first day of that month.
+    """
     today = datetime.today()
     thirty_days_ago = today - timedelta(days=days)
-    first_day_of_month = (thirty_days_ago.replace(day=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return first_day_of_month
+    beginning_of_day = (thirty_days_ago.replace(day=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return beginning_of_day
 
 
 class MicroVuReportFileMover:
+    """
+    Organizes aging MicroVu report files by moving them into year-based folders.
+
+    Initialization:
+        - Loads `root_path` and `mv_days_to_keep` from the INI settings.
+
+    Behavior:
+        - Determines a time cutoff (expected to be computed and assigned to
+          `_pdf_file_cutoff` prior to moving).
+        - Scans files within `root_path` (non-recursive).
+        - For files older than `_pdf_file_cutoff`, moves them into a subfolder
+          named `_<YYYY>` derived from the file's last-modified timestamp.
+
+    Attributes:
+        _logger: Logger instance for diagnostics.
+        _root_path: Root directory to scan for report files.
+        _pdf_file_days_to_keep: Days used to compute age cutoff.
+        _pdf_file_cutoff: Datetime boundary; files older than this are moved.
+    """
     _logger = None
     _root_path = ""
     _pdf_file_days_to_keep = 0
     _pdf_file_cutoff = None
 
     def __init__(self):
+        """
+        Initialize the mover by loading configuration and preparing to process files.
+
+        Logs:
+            - DEBUG: start message and resolved root path.
+            - ERROR: when `root_path` is not configured or `mv_days_to_keep` is invalid.
+        """
         self._logger = PurgifierLogger.get_logger("micro_vu_file_mover_logger")
         self._logger.debug("Starting MicroVu Report File Mover")
 
@@ -37,6 +116,26 @@ class MicroVuReportFileMover:
         self._logger.debug(f"Root Path: {self._root_path}")
 
     def move_microvu_files(self):
+        """
+        Move files older than the configured cutoff into year-based subfolders.
+
+        Process:
+            - Iterate non-recursively through `self._root_path`.
+            - For each file, read its modification time.
+            - If `mtime` < `_pdf_file_cutoff`, move the file into a folder named
+              `_<YYYY>` in the same directory (create if missing).
+
+        Logging:
+            - DEBUG: on directory creation, and each successful move.
+            - ERROR: if file stats cannot be read.
+            - WARNING: if a file cannot be moved.
+            - Summary DEBUG: counts of checked and moved files.
+
+        Notes:
+            - `_pdf_file_cutoff` must be set prior to calling this method; otherwise,
+              the comparison will fail.
+            - If only PDF reports should be moved, filter for ".pdf" extension.
+        """
         checked = 0
         move_file_count = 0
         errors = 0
