@@ -60,7 +60,7 @@ def test_init_logs_error_when_days_invalid(tmp_path, monkeypatch, mock_logger):
 
 def test_move_moves_old_files_and_creates_year_folder(tmp_path, monkeypatch, mock_logger):
     # Keep files older than start-of-today eligible by using 0 days
-    inst = _make_instance(str(tmp_path), 0, monkeypatch)
+    inst = _make_instance(str(tmp_path), 1, monkeypatch)
 
     old_pdf = tmp_path / "old.pdf"
     new_pdf = tmp_path / "new.pdf"
@@ -69,7 +69,7 @@ def test_move_moves_old_files_and_creates_year_folder(tmp_path, monkeypatch, moc
     (tmp_path / "subdir").mkdir()  # should be skipped by is_file()
 
     # Set mtimes: old is yesterday, new is now
-    _set_mtime(str(old_pdf), datetime.now() - timedelta(days=1))
+    _set_mtime(str(old_pdf), datetime.now() - timedelta(days=61))
     _set_mtime(str(new_pdf), datetime.now())
 
     inst.move_microvu_files()
@@ -96,7 +96,7 @@ def test_move_logs_warning_on_move_failure_and_error_summary(tmp_path, monkeypat
 
     bad = tmp_path / "bad.pdf"
     bad.write_text("locked")
-    _set_mtime(str(bad), datetime.now() - timedelta(days=1))
+    _set_mtime(str(bad), datetime.now() - timedelta(days=60))
 
     real_move = shutil.move
 
