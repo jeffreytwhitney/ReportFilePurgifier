@@ -109,6 +109,7 @@ class MicroVuReportFileMover:
 
         try:
             self._pdf_file_days_to_keep = int(get_stored_ini_value("MicroVUFileMover", "mv_days_to_keep", "PurgifierSettings"))
+            self._pdf_file_cutoff = _get_minus_days_beginning_of_day(self._pdf_file_days_to_keep)
         except ValueError:
             self._logger.error("mv_days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
@@ -164,6 +165,7 @@ class MicroVuReportFileMover:
                             self._logger.debug(f"Creating directory: {new_dir}")
                             os.mkdir(new_dir)
                         new_path = os.path.join(new_dir, os.path.basename(full_path))
+                        print(new_path)
                         shutil.move(full_path, new_path)
                         self._logger.debug(f"Moved: {full_path} to {new_path}")
                         move_file_count += 1
@@ -176,3 +178,8 @@ class MicroVuReportFileMover:
 
         if errors > 0:
             self._logger.warning(f"WARNING: {errors} error(s) occurred during scanning/deletion.")
+
+
+if __name__ == "__main__":
+    mover = MicroVuReportFileMover()
+    mover.move_microvu_files()
