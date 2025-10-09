@@ -90,6 +90,7 @@ class MicroVuReportFileMover:
     _root_path = ""
     _pdf_file_days_to_keep = 0
     _pdf_file_cutoff = None
+    _pdf_archive_dir = None
 
     def __init__(self):
         """
@@ -103,6 +104,7 @@ class MicroVuReportFileMover:
         self._logger.debug("Starting MicroVu Report File Mover")
 
         self._root_path = get_stored_ini_value("MicroVUFileMover", "root_path", "PurgifierSettings")
+        self._pdf_archive_dir = get_stored_ini_value("MicroVUFileMover", "archive_path", "PurgifierSettings")
         if not self._root_path:
             self._logger.error("Root Path not found in INI file.")
             return
@@ -143,7 +145,8 @@ class MicroVuReportFileMover:
 
         with os.scandir(self._root_path) as entries:
             for entry in entries:
-                full_path = os.path.join(self._root_path, entry)
+                full_path = os.path.join(self._root_path, entry.name)
+
                 if not entry.is_file():
                     continue
                 checked += 1
@@ -159,15 +162,17 @@ class MicroVuReportFileMover:
 
                 if mtime_dt < self._pdf_file_cutoff:
                     try:
-                        year_subdir = "_" + mtime_dt.strftime("%Y")
-                        new_dir = os.path.join(os.path.dirname(full_path), year_subdir)
-                        if not os.path.exists(new_dir):
-                            self._logger.debug(f"Creating directory: {new_dir}")
-                            os.mkdir(new_dir)
-                        new_path = os.path.join(new_dir, os.path.basename(full_path))
-                        print(new_path)
-                        shutil.move(full_path, new_path)
-                        self._logger.debug(f"Moved: {full_path} to {new_path}")
+                        year_subdir = mtime_dt.strftime("%Y")
+                        month_subdir = mtime_dt.strftime("%m-%Y")
+                        archive_dir = os.path.join(self._pdf_archive_dir, year_subdir, month_subdir)
+
+                        if not os.path.exists(archive_dir):
+                            self._logger.debug(f"Creating directory: {archive_dir}")
+                            os.mkdir(archive_dir)
+                        archive_path = os.path.join(archive_dir, os.path.basename(full_path))
+                        print(archive_path)
+                        shutil.move(full_path, archive_path)
+                        self._logger.debug(f"Moved: {full_path} to {archive_path}")
                         move_file_count += 1
                     except Exception as e:
                         errors += 1

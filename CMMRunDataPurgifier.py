@@ -5,15 +5,15 @@ Overview:
     This module purges legacy CMM run data files from a configured root directory
     based on two retention policies:
       - General PRG files are deleted if their last-modified timestamp is older
-        than the beginning of the month derived from (today - N days). 
-        Meaning that if N=30 and today is 2025-09-27, the cutoff is 2025-08-01 00:00:00.
+        than x days. So if x=30, the cutoff is 30 days ago from today's date.
       - CAD files (i.e., files with the .CAD extension, case-insensitive) are
         deleted if their last-modified timestamp is older than N days (midnight).
         So if N=1 and today is 2025-09-27, the cutoff is 2025-09-26 00:00:00.
-        Originally, the script that I.T. had deleted everything older that a certain number of hours,
+
+        Originally, the script that I.T. had deleted every cad file older that a certain number of hours,
         but I only want to run this thing once a day, and I don't want the CAD file to delete if you run it
-        at 11:59 PM and then you go looking for the CAD file at 12:05 AM and it's not there becuase 
-        it deleted everything from yesterday...I can see that possibly causing issues._
+        at 11:59 PM, and then you go looking for the CAD file at 12:05 AM, and it's not there because
+        it deleted everything from yesterday...I can see that possibly causing issues.
 
     All actions and anomalies are logged via the configured logger.
 
@@ -55,23 +55,19 @@ import PurgifierLogger
 from Utilities import get_stored_ini_value
 
 
-def _get_minus_days_beginning_of_month(days: int) -> datetime:
+def _get_minus_days_date(days: int) -> datetime:
     """
-    Compute the beginning (midnight) of the month that corresponds to "today - days".
-
-    For example, if today is 2025-09-27 and days=10, the date is 2025-09-17; this
-    returns 2025-09-01 00:00:00.
+    Returns date x days ago.
 
     Args:
-        days: Number of days to subtract from today to determine the reference date.
+        days: Number of days to subtract from today.
 
     Returns:
-        A `datetime` at 00:00:00 representing the first day of that month.
+        A `datetime` at 00:00:00 representing the date x days ago.
     """
     today = datetime.today()
-    thirty_days_ago = today - timedelta(days=days)
-    first_day_of_month = (thirty_days_ago.replace(day=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return first_day_of_month
+    date_minus_days = today - timedelta(days=days)
+    return date_minus_days
 
 
 def _get_beginning_of_day(days: int) -> datetime:
@@ -156,7 +152,7 @@ class CMMRunDataPurgifier:
             return
 
         self._cad_file_cutoff = _get_beginning_of_day(self._cad_file_days_to_keep)
-        self._prg_file_cutoff = _get_minus_days_beginning_of_month(self._prg_file_days_to_keep)
+        self._prg_file_cutoff = _get_minus_days_date(self._prg_file_days_to_keep)
 
         self._logger.debug(f"Root Path: {self._root_path}")
         self._logger.debug(f"PRG Cutoff Datetime: {self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
