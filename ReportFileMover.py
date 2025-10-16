@@ -1,27 +1,27 @@
 """
-MicroVu Report File Mover
+Report File Mover
 
 Overview:
-    Moves aging MicroVu report files from a configured root directory into
+    Moves aging report files from a configured root directory into
     year-based subfolders, helping organize older reports. The intended policy is:
       - For files older than a configured cutoff, move them into a sibling folder
         named "_<YYYY>" based on each file's last-modified year.
 
 Configuration:
+    There are two levels of configuration:
+      The upper level is the list of report file movers to load from the INI.
+      The lower level is the configuration for each mover.
+
     Values are loaded via `Utilities.get_stored_ini_value(section, key, ini_name)`.
-
-    Expected INI entries:
-      - Section: "MicroVUFileMover"
-          - Key: "root_path" (string)
-              Root directory that contains report files to organize.
-          - Key: "mv_days_to_keep" (int)
-              Number of days used to compute the age cutoff for moving files.
-      - Ini name: "PurgifierSettings"
-
-Usage:
-    Instantiate and run:
-        >>> mover = MicroVuReportFileMover()
-        >>> mover.move_microvu_files()
+    Expected Values in Upper Level:
+        -Section: "ReportFileMovers"
+        -Key: "file_movers" (Comma-delimited string of mover names)
+    
+    Expected Values in Lower Level:
+        -Section: "<type>FileMover" example: "MicroVUFileMover"
+        -Key: "root_path" (string)
+        -Key: "archive_path" (string)
+        -Key: "mv_days_to_keep" (int)
 
 Behavior:
     - Scans the configured `root_path` non-recursively.
@@ -30,7 +30,7 @@ Behavior:
     - Logs progress, actions, and any errors encountered.
 
 Logging:
-    Uses `PurgifierLogger.get_logger("micro_vu_file_mover_logger")`.
+    Uses `PurgifierLogger.get_logger("file_mover_logger")`.
     - DEBUG: start/end, root path, directory creation, and each move.
     - WARNING: recoverable issues (e.g., failure to move a file).
     - ERROR: non-recoverable issues (e.g., unreadable file stats).
@@ -42,31 +42,12 @@ import os
 import shutil
 from datetime import datetime, timedelta
 
+from Utilities import get_minus_days_beginning_of_day
 import PurgifierLogger
 from Utilities import get_stored_ini_value
 
 
-def _get_minus_days_beginning_of_day(days: int) -> datetime:
-    """
-    Compute midnight of today-days.
-
-    Example:
-        If today is 2025-09-27 and days=10 (reference = 2025-09-17),
-        the result is 2025-09-17 00:00:00.
-
-    Args:
-        days: Number of days to subtract from today to determine the reference date.
-
-    Returns:
-        datetime at 00:00:00 on the first day of that month.
-    """
-    today = datetime.today()
-    thirty_days_ago = today - timedelta(days=days)
-    beginning_of_day = (thirty_days_ago.replace(day=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-    return beginning_of_day
-
-
-class MicroVuReportFileMover:
+class ReportFileMover:
     """
     Organizes aging MicroVu report files by moving them into year-based folders.
 
@@ -92,7 +73,7 @@ class MicroVuReportFileMover:
     _pdf_file_cutoff = None
     _pdf_archive_dir = None
 
-    def __init__(self):
+    def __init__(self, mover_type_name: str):
         """
         Initialize the mover by loading configuration and preparing to process files.
 
@@ -100,25 +81,25 @@ class MicroVuReportFileMover:
             - DEBUG: start message and resolved root path.
             - ERROR: when `root_path` is not configured or `mv_days_to_keep` is invalid.
         """
-        self._logger = PurgifierLogger.get_logger("micro_vu_file_mover_logger")
-        self._logger.debug("Starting MicroVu Report File Mover")
+        self._logger = PurgifierLogger.get_logger("file_mover_logger")
+        self._logger.debug("Starting Report File Mover")
 
-        self._root_path = get_stored_ini_value("MicroVUFileMover", "root_path", "PurgifierSettings")
-        self._pdf_archive_dir = get_stored_ini_value("MicroVUFileMover", "archive_path", "PurgifierSettings")
+        self._root_path = get_stored_ini_value(mover_type_name, "root_path", "PurgifierSettings")
+        self._pdf_archive_dir = get_stored_ini_value(mover_type_name, "archive_path", "PurgifierSettings")
         if not self._root_path:
             self._logger.error("Root Path not found in INI file.")
             return
 
         try:
-            self._pdf_file_days_to_keep = int(get_stored_ini_value("MicroVUFileMover", "mv_days_to_keep", "PurgifierSettings"))
-            self._pdf_file_cutoff = _get_minus_days_beginning_of_day(self._pdf_file_days_to_keep)
+            self._pdf_file_days_to_keep = int(get_stored_ini_value(mover_type_name, "days_to_keep", "PurgifierSettings"))
+            self._pdf_file_cutoff = get_minus_days_beginning_of_day(self._pdf_file_days_to_keep)
         except ValueError:
-            self._logger.error("mv_days_to_keep returned either a non-numeric value or else not found in INI file.")
+            self._logger.error("days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
 
         self._logger.debug(f"Root Path: {self._root_path}")
 
-    def move_microvu_files(self):
+    def archive_files(self):
         """
         Move files older than the configured cutoff into year-based subfolders.
 
@@ -164,8 +145,13 @@ class MicroVuReportFileMover:
                     try:
                         year_subdir = mtime_dt.strftime("%Y")
                         month_subdir = mtime_dt.strftime("%m-%Y")
-                        archive_dir = os.path.join(self._pdf_archive_dir, year_subdir, month_subdir)
 
+                        archive_year_dir = os.path.join(self._pdf_archive_dir, year_subdir)
+                        if not os.path.exists(archive_year_dir):
+                            self._logger.debug(f"Creating directory: {archive_year_dir}")
+                            os.mkdir(archive_year_dir)
+
+                        archive_dir = os.path.join(self._pdf_archive_dir, year_subdir, month_subdir)
                         if not os.path.exists(archive_dir):
                             self._logger.debug(f"Creating directory: {archive_dir}")
                             os.mkdir(archive_dir)
@@ -186,5 +172,5 @@ class MicroVuReportFileMover:
 
 
 if __name__ == "__main__":
-    mover = MicroVuReportFileMover()
-    mover.move_microvu_files()
+    mover = ReportFileMover("MicroVUFileMover")
+    mover.archive_files()

@@ -1,6 +1,7 @@
 import configparser
 import os
 import sys
+from datetime import datetime, timedelta
 
 
 def resolve_path():
@@ -64,3 +65,22 @@ def get_file_as_string(file_path: str):
             return str(f.read())
     except IOError:
         return ""
+
+
+def get_minus_days_beginning_of_day(days: int) -> datetime:
+    """
+    Compute midnight of today-days.
+
+    Example:
+        If today is 2025-09-27 and days=10, the result is 2025-09-17 00:00:00.
+
+    Args:
+        days: Number of days to subtract from today to determine the reference date.
+
+    Returns:
+        datetime at 00:00:00 on the first day of that month.
+    """
+    today = datetime.today()
+    date_minus_days = today - timedelta(days=days)
+    beginning_of_day = date_minus_days.replace(hour=0, minute=0, second=0, microsecond=0)
+    return beginning_of_day

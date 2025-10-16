@@ -48,40 +48,11 @@ Caveats:
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 import PurgifierLogger
-from Utilities import get_stored_ini_value
-
-
-def _get_minus_days_date(days: int) -> datetime:
-    """
-    Returns date x days ago.
-
-    Args:
-        days: Number of days to subtract from today.
-
-    Returns:
-        A `datetime` at 00:00:00 representing the date x days ago.
-    """
-    today = datetime.today()
-    date_minus_days = today - timedelta(days=days)
-    return date_minus_days
-
-
-def _get_beginning_of_day(days: int) -> datetime:
-    """
-    Compute the midnight boundary for "today - days".
-
-    Args:
-        days: Number of days to subtract from today.
-
-    Returns:
-        A `datetime` at 00:00:00 for the computed day.
-    """
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    return today - timedelta(days=days)
+from Utilities import get_minus_days_beginning_of_day, get_stored_ini_value
 
 
 class CMMRunDataPurgifier:
@@ -140,19 +111,19 @@ class CMMRunDataPurgifier:
             return
 
         try:
-            self._prg_file_days_to_keep = int(get_stored_ini_value("CMMRunDataPurgifier", "path", "PurgifierSettings"))
+            self._prg_file_days_to_keep = int(get_stored_ini_value("CMMRunDataPurgifier", "cmm_prg_days_to_keep", "PurgifierSettings"))
         except ValueError:
             self._logger.error("cmm_prg_days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
 
         try:
-            self._cad_file_days_to_keep = int(get_stored_ini_value("cmm_cad_days_to_keep", "path", "PurgifierSettings"))
+            self._cad_file_days_to_keep = int(get_stored_ini_value("CMMRunDataPurgifier", "cmm_cad_days_to_keep", "PurgifierSettings"))
         except ValueError:
             self._logger.error("cmm_cad_days_to_keep returned either a non-numeric value or else not found in INI file.")
             return
 
-        self._cad_file_cutoff = _get_beginning_of_day(self._cad_file_days_to_keep)
-        self._prg_file_cutoff = _get_minus_days_date(self._prg_file_days_to_keep)
+        self._cad_file_cutoff = get_minus_days_beginning_of_day(self._cad_file_days_to_keep)
+        self._prg_file_cutoff = get_minus_days_beginning_of_day(self._prg_file_days_to_keep)
 
         self._logger.debug(f"Root Path: {self._root_path}")
         self._logger.debug(f"PRG Cutoff Datetime: {self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
@@ -203,6 +174,7 @@ class CMMRunDataPurgifier:
                     try:
                         os.remove(full_path)
                         self._logger.debug(f"Deleted: {full_path}")
+                        print(f"Deleted: {full_path}")
                         deleted_prg += 1
                     except Exception as e:
                         errors += 1
@@ -213,6 +185,7 @@ class CMMRunDataPurgifier:
                     try:
                         os.remove(full_path)
                         self._logger.debug(f"Deleted: {full_path}")
+                        print(f"Deleted: {full_path}")
                         deleted_cad += 1
                     except Exception as e:
                         errors += 1
