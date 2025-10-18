@@ -23,13 +23,9 @@ Configuration:
     Expected INI entries (illustrative; align with your actual INI schema):
       - Section: "CMMRunDataPurgifier"
           - Key: "root_path" (string) - Root directory containing files to purge.
-          - Key: "<prg_days_key>" (int) - Number of days used to compute PRG cutoff.
-          - Key: "<cad_days_key>" (int) - Number of days used to compute CAD cutoff.
+          - Key: "<cmm_prg_days_to_keep>" (int) - Number of days used to compute PRG cutoff.
+          - Key: "<cmm_cad_days_to_keep>" (int) - Number of days used to compute CAD cutoff.
       - Ini name: "PurgifierSettings"
-
-    Note: The function calls currently use the keys/sections exactly as coded in
-    `__init__`. Ensure your INI matches those expectations or adjust the code/INI
-    accordingly.
 
 Usage:
     Instantiate and invoke the purge:
