@@ -15,6 +15,20 @@ import ReportFileMover
 def _set_mtime(path: str, dt: datetime):
     ts = dt.timestamp()
     os.utime(path, (ts, ts))
+    
+
+def _make_instance(root_path: str, days_to_keep: int, monkeypatch):
+    calls = [root_path, str(days_to_keep)]
+
+    def fake_get(*_):
+        return calls.pop(0)
+
+    monkeypatch.setattr(ReportFileMover, "get_stored_ini_value", fake_get)
+    inst = ReportFileMover.ReportFileMover("MicroVUFileMover")
+    # Ensure cutoff is available if the code under test doesn't set it yet
+    if getattr(inst, "_pdf_file_cutoff", None) is None:
+        inst._pdf_file_cutoff = ReportFileMover.get_minus_days_beginning_of_day(days_to_keep)
+    return inst
 
 
 @pytest.fixture
@@ -47,21 +61,8 @@ def test_init_logs_error_when_days_invalid(tmp_path, monkeypatch, mock_logger):
     )
 
 
-def _make_instance(root_path: str, days_to_keep: int, monkeypatch):
-    calls = [root_path, str(days_to_keep)]
 
-    def fake_get(*_):
-        return calls.pop(0)
-
-    monkeypatch.setattr(ReportFileMover, "get_stored_ini_value", fake_get)
-    inst = ReportFileMover.ReportFileMover("MicroVUFileMover")
-    # Ensure cutoff is available if the code under test doesn't set it yet
-    if getattr(inst, "_pdf_file_cutoff", None) is None:
-        inst._pdf_file_cutoff = ReportFileMover.get_minus_days_beginning_of_day(days_to_keep)
-    return inst
-
-
-def test_move_moves_old_files_and_creates_year_folder(tmp_path, monkeypatch, mock_logger):
+def test_moves_old_files_and_creates_year_folder(tmp_path, monkeypatch, mock_logger):
     # Keep files older than start-of-today eligible by using 0 days
     inst = _make_instance(str(tmp_path), 0, monkeypatch)
 
