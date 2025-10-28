@@ -196,3 +196,8 @@ class CMMRunDataPurgifier:
         self._logger.debug(f"Deleted CAD files: {deleted_cad} file(s) older than {self._cad_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
         if errors > 0:
             self._logger.warning(f"WARNING: {errors} error(s) occurred during scanning/deletion.")
+
+
+if __name__ == "__main__":
+    purgifier = CMMRunDataPurgifier()
+    purgifier.purge_old_cmm_run_data()

@@ -6,12 +6,8 @@ def test_cmm_run_data_purgifier_logger_level():
     assert get_stored_ini_value("Loggers", "cmm_run_data_purgifier_logger", "PurgifierSettings") == "INFO"
 
 
-def test_micro_vu_file_mover_logger_level():
-    assert get_stored_ini_value("Loggers", "micro_vu_file_mover_logger", "PurgifierSettings") == "INFO"
-
-
-def test_cmm_file_mover_logger_level():
-    assert get_stored_ini_value("Loggers", "cmm_file_mover_logger", "PurgifierSettings") == "INFO"
+def test_file_mover_logger_level():
+    assert get_stored_ini_value("Loggers", "file_mover_logger", "PurgifierSettings") == "INFO"
 
 
 def test_cmm_run_data_purgifier_root_path():
@@ -19,7 +15,7 @@ def test_cmm_run_data_purgifier_root_path():
 
 
 def test_cmm_run_data_purgifier_prg_days_to_keep():
-    assert get_stored_ini_value("CMMRunDataPurgifier", "cmm_prg_days_to_keep", "PurgifierSettings") == "30"
+    assert get_stored_ini_value("CMMRunDataPurgifier", "cmm_prg_days_to_keep", "PurgifierSettings") == "90"
 
 
 def test_cmm_run_data_purgifier_cad_days_to_keep():
@@ -31,7 +27,7 @@ def test_micro_vu_file_mover_root_path():
 
 
 def test_micro_vu_file_mover_mv_days_to_keep():
-    assert get_stored_ini_value("MicroVUFileMover", "mv_days_to_keep", "PurgifierSettings") == "30"
+    assert get_stored_ini_value("MicroVUFileMover", "days_to_keep", "PurgifierSettings") == "30"
 
 
 def test_cmm_file_mover_root_path():
@@ -39,4 +35,4 @@ def test_cmm_file_mover_root_path():
 
 
 def test_cmm_file_mover_cmm_days_to_keep():
-    assert get_stored_ini_value("CMMFileMover", "cmm_days_to_keep", "PurgifierSettings") == "30"
+    assert get_stored_ini_value("CMMFileMover", "days_to_keep", "PurgifierSettings") == "90"
