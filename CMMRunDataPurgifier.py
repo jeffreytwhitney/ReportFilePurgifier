@@ -95,7 +95,7 @@ class CMMRunDataPurgifier:
             - Debug entries for root path and computed cutoff timestamps.
         """
         self._logger = PurgifierLogger.get_logger("cmm_run_data_purgifier_logger")
-        self._logger.debug("Starting CMM Run Data Purge")
+        self._logger.info("Starting CMM Run Data Purge")
 
         self._root_path = get_stored_ini_value("CMMRunDataPurgifier", "root_path", "PurgifierSettings")
         if not self._root_path:
@@ -122,8 +122,9 @@ class CMMRunDataPurgifier:
         self._prg_file_cutoff = get_minus_days_beginning_of_day(self._prg_file_days_to_keep)
 
         self._logger.debug(f"Root Path: {self._root_path}")
-        self._logger.debug(f"PRG Cutoff Datetime: {self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
-        self._logger.debug(f"CAD Cutoff Datetime: {self._cad_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
+
+        self._logger.debug("PRG Cutoff Datetime: " + self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S"))
+        self._logger.debug("CAD Cutoff Datetime: " + self._cad_file_cutoff.strftime("%Y-%m-%d %H:%M:%S"))
 
     def purge_old_cmm_run_data(self):
         """
@@ -150,7 +151,7 @@ class CMMRunDataPurgifier:
         deleted_prg = 0
         deleted_cad = 0
         errors = 0
-
+        print("Started Purging Run Data Files...")
         with os.scandir(self._root_path) as entries:
             for entry in entries:
                 full_path = os.path.join(self._root_path, entry)
@@ -163,7 +164,7 @@ class CMMRunDataPurgifier:
                     mtime_dt = datetime.fromtimestamp(mtime)
                 except Exception as e:
                     errors += 1
-                    self._logger.error(f"Failed to get file stats for file: {full_path}")
+                    self._logger.error(f"Failed to get file stats for file: {full_path} - {e}")
                     continue
 
                 if mtime_dt < self._prg_file_cutoff:
@@ -187,11 +188,13 @@ class CMMRunDataPurgifier:
                         errors += 1
                         self._logger.warning(f"WARNING: Failed to delete: {full_path} - {e}")
 
-        self._logger.debug(f"Checked: {checked} file(s)")
-        self._logger.debug(f"Deleted PRG files: {deleted_prg} file(s) older than {self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
-        self._logger.debug(f"Deleted CAD files: {deleted_cad} file(s) older than {self._cad_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
+        self._logger.info(f"Checked: {checked} file(s)")
+        self._logger.info(f"Deleted PRG files: {deleted_prg} file(s) older than " + self._prg_file_cutoff.strftime("%Y-%m-%d %H:%M:%S"))
+        self._logger.info(f"Deleted CAD files: {deleted_cad} file(s) older than " + self._cad_file_cutoff.strftime("%Y-%m-%d %H:%M:%S"))
         if errors > 0:
             self._logger.warning(f"WARNING: {errors} error(s) occurred during scanning/deletion.")
+        print("Completed Purging Run Data Files.")
+        print(f"Deleted {deleted_prg} PRG files and {deleted_cad} CAD files.")
 
 
 if __name__ == "__main__":

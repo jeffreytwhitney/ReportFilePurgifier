@@ -46,7 +46,7 @@ def get_ini_file_path(ini_file_name):
     Returns:
         str: Full path to the INI file next to this module, e.g. "C:\\path\\to\\dir\\myapp.ini".
     """
-    current_dir = os.path.dirname(__file__)
+    current_dir = resolve_path()
     return current_dir + "\\" + ini_file_name + ".ini"
 
 

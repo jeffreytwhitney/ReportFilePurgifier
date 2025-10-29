@@ -69,6 +69,7 @@ class ReportFileMover:
     """
     _logger = None
     _root_path = ""
+    _mover_type_name = ""
     _pdf_file_days_to_keep = 0
     _pdf_file_cutoff = None
     _pdf_archive_dir = None
@@ -81,8 +82,9 @@ class ReportFileMover:
             - DEBUG: start message and resolved root path.
             - ERROR: when `root_path` is not configured or `mv_days_to_keep` is invalid.
         """
+        self._mover_type_name = mover_type_name
         self._logger = PurgifierLogger.get_logger("file_mover_logger")
-        self._logger.debug("Starting Report File Mover")
+        self._logger.info(f"Starting Report File Mover of type: {mover_type_name}")
 
         self._root_path = get_stored_ini_value(mover_type_name, "root_path", "PurgifierSettings")
         self._pdf_archive_dir = get_stored_ini_value(mover_type_name, "archive_path", "PurgifierSettings")
@@ -123,6 +125,7 @@ class ReportFileMover:
         checked = 0
         move_file_count = 0
         errors = 0
+        print(f"Started Moving Report Files of type {self._mover_type_name}")
 
         with os.scandir(self._root_path) as entries:
             for entry in entries:
@@ -164,11 +167,14 @@ class ReportFileMover:
                         errors += 1
                         self._logger.warning(f"WARNING: Failed to move file: {full_path} - {e}")
 
-        self._logger.debug(f"Checked: {checked} file(s)")
-        self._logger.debug(f"Moved: {move_file_count} .pdf file(s) older than {self._pdf_file_cutoff.strftime("%Y-%m-%d %H:%M:%S")}")
+        self._logger.info(f"Checked: {checked} file(s)")
+        self._logger.info(f"Moved: {move_file_count} .pdf file(s) older than " + self._pdf_file_cutoff.strftime("%Y-%m-%d %H:%M:%S"))
 
         if errors > 0:
             self._logger.warning(f"WARNING: {errors} error(s) occurred during scanning/deletion.")
+
+        print(f"Completed Moving Report Files of type {self._mover_type_name}")
+        print(f"Moved {move_file_count} report files.")
 
 
 if __name__ == "__main__":
