@@ -13,7 +13,10 @@ This module provides:
 
 import configparser
 import os
+import shutil
 import sys
+import tempfile
+from collections import deque
 from datetime import datetime, timedelta
 
 
@@ -172,3 +175,62 @@ def get_minus_days_beginning_of_day(days: int) -> datetime:
     date_minus_days = today - timedelta(days=days)
     beginning_of_day = date_minus_days.replace(hour=0, minute=0, second=0, microsecond=0)
     return beginning_of_day
+
+
+def trim_log_file(log_file_name: str, max_lines: int = 10000, encoding: str = "utf-8") -> None:
+    """
+    Trim the file at `path` so it contains at most `max_lines` last lines.
+
+    - Reads the file line-by-line (low memory: only keeps up to max_lines in memory).
+    - If the file already has <= max_lines, it is left untouched.
+
+    """
+    if max_lines < 0:
+        raise ValueError("max_lines must be non-negative")
+
+    current_dir = resolve_path()
+    log_file_path = current_dir + "\\" + log_file_name + ".txt"
+
+    if not os.path.exists(log_file_path):
+        return
+
+    dq = deque(maxlen=max_lines)
+    total = 0
+
+    with open(log_file_path, "r", encoding=encoding, errors="replace") as f:
+        for line in f:
+            dq.append(line)
+            total += 1
+
+    kept = len(dq)
+
+    # If nothing to trim, return early
+    if total <= max_lines:
+        return
+
+    # Write to a temp file in the same directory and atomically replace
+    dirpath = os.path.dirname(log_file_path) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=dirpath, prefix=".trimtmp-", text=True)
+    try:
+        # Open fd as a file object to allow specifying encoding and fsync
+        with os.fdopen(fd, "w", encoding=encoding, errors="replace") as tmpf:
+            tmpf.writelines(dq)
+            tmpf.flush()
+            os.fsync(tmpf.fileno())
+
+        # Preserve metadata (mode, timestamps) from original
+        try:
+            shutil.copystat(log_file_path, tmp_path)
+        except Exception:
+            # If we can't copy metadata (e.g., permission), continue anyway
+            pass
+
+        # Atomic replace
+        os.replace(tmp_path, log_file_path)
+    except Exception:
+        # Clean up tmp file on error
+        try:
+            os.remove(tmp_path)
+        except Exception:
+            pass
+        raise

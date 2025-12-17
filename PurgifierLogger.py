@@ -19,7 +19,7 @@ Configuration
   DEBUG level; otherwise they default to INFO.
 
 - Log file path is resolved using `Utilities.resolve_path()` and logs are written to:
-    <resolve_path()>\PurgifierRunLog.txt
+    <resolve_path()>\\PurgifierRunLog.txt
 
 Log format
 - %(asctime)s - %(name)s - %(levelname)s - %(message)s
@@ -56,7 +56,7 @@ def get_logger(logger_name) -> logging.Logger:
     DEBUG; otherwise they default to INFO.
 
     A `FileHandler` is attached that writes to:
-        <resolve_path()>\PurgifierRunLog.txt
+        <resolve_path()>\\PurgifierRunLog.txt
     using the format:
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
@@ -100,6 +100,10 @@ def get_logger(logger_name) -> logging.Logger:
     else:
         file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
     logger.addHandler(file_handler)
 
     return logger

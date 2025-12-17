@@ -1,6 +1,6 @@
 from CMMRunDataPurgifier import CMMRunDataPurgifier
 from ReportFileMover import ReportFileMover
-from Utilities import get_stored_ini_value
+from Utilities import get_stored_ini_value, trim_log_file
 
 
 def purge_old_cmm_run_data():
@@ -33,3 +33,5 @@ if __name__ == "__main__":
     file_movers = get_stored_ini_value("ReportFileMovers", "file_movers", "PurgifierSettings").split(",")
     for mover in file_movers:
         move_old_report_files(mover.strip())
+
+    trim_log_file("PurgifierRunLog")
